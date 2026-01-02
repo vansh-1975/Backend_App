@@ -1,0 +1,53 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Document</title>
+</head>
+<body>
+    <%- include("./partials/flash") %>
+
+    <div class="w-full h-screen bg-zinc-800 p-10 text-white">
+            <h3 class="text-3xl mb-6 mr-4">Upload Your Profile Picture</h3>
+            <form action="/upload" method="post" autocomplete="off" enctype="multipart/form-data">
+            <input name="image" type="file">
+            <input type="submit" value="Upload Picture" class="px-2 py-1 border-2 border-zinc-500 rounded-md outline-none bg-indigo-500">
+            </form>
+    </div>
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <title>Upload</title>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <%- include("./partials/flash") %>
+
+  <div class="bg-white p-6 rounded-xl shadow w-full max-w-md">
+    <h3 class="text-xl font-semibold mb-4">Upload Profile Picture</h3>
+
+    <form action="/upload" method="post" enctype="multipart/form-data" class="space-y-4">
+      <input type="file" name="image">
+      <button class="w-full bg-indigo-600 text-white py-2 rounded-lg">
+        Upload
+      </button>
+    </form>
+  </div>
+</body>
+</html>
