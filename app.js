@@ -138,11 +138,17 @@ app.get("/upload", isloggedin, (req, res) => {
 });
 
 app.post("/upload", isloggedin, upload.single("image"), async (req, res) => {
-  const user = await usermodel.findOne({ email: req.user.email });
-  user.profilepic = req.file.filename;
-  await user.save();
-  req.flash("success", "Profile picture updated");
-  res.redirect("/profile");
+  try {
+    const user = await usermodel.findOne({ email: req.user.email });
+    user.profilepic = req.file.path;
+    await user.save();
+    req.flash("success", "Profile picture updated");
+    res.redirect("/profile");
+  } catch (err) {
+    console.error(err);
+    req.flash("error", "Failed to upload image. Try again!");
+    res.redirect("/upload");
+  }
 });
 
 app.post("/post", isloggedin, async (req, res) => {
