@@ -75,14 +75,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <title>All Posts</title>
 </head>
-
+<%- include("./partials/header") %>
 <body class="bg-gray-100">
   <%- include("./partials/flash") %>
 
   <div class="max-w-6xl mx-auto p-4 sm:p-8">
-    <a href="/profile" class="text-indigo-600 underline mb-4 block">
-      ← Back to Profile
-    </a>
 
     <h1 class="text-2xl font-bold text-center mb-8">Community Posts</h1>
 
@@ -113,5 +110,6 @@
       <% } %>
     </div>
   </div>
+  <%- include("./partials/footer") %>
 </body>
 </html>

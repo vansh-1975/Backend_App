@@ -1,0 +1,48 @@
+<nav class="bg-white shadow-sm sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-4 sm:px-8">
+    <div class="flex justify-between items-center h-16">
+      
+      <a href="/" class="flex items-center gap-2">
+        <img src="https://cdn-icons-png.flaticon.com/512/616/616408.png" alt="Logo" class="w-10 h-10 object-cover rounded-full">
+        <span class="font-bold text-xl text-indigo-600">MyProfile</span>
+      </a>
+
+      <div class="hidden md:flex items-center gap-6">
+        <a href="/home" class="text-gray-700 hover:text-indigo-600 font-medium transition">Home</a>
+        <a href="/about" class="text-gray-700 hover:text-indigo-600 font-medium transition">About Us</a>
+        <a href="/profile" class="text-gray-700 hover:text-indigo-600 font-medium transition">Profile</a>
+        <a href="/upload" class="text-gray-700 hover:text-indigo-600 font-medium transition">Edit Profile Pic</a>
+        <a href="/logout"
+        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
+        Logout
+      </a>
+      </div>
+
+      <div class="md:hidden">
+        <button id="menu-btn" class="text-gray-700 hover:text-indigo-600 focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="mobile-menu" class="hidden md:hidden px-4 pt-2 pb-4 space-y-2 bg-white shadow-md">
+    <a href="/home" class="block text-gray-700 hover:text-indigo-600 font-medium transition">Home</a>
+    <a href="/about" class="block text-gray-700 hover:text-indigo-600 font-medium transition">About Us</a>
+    <a href="/profile" class="block text-gray-700 hover:text-indigo-600 font-medium transition">Profile</a>
+    <a href="/upload" class="block text-gray-700 hover:text-indigo-600 font-medium transition">Edit Profile Pic</a>
+    <a href="/logout" class="block bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition">Logout</a>
+  </div>
+</nav>
+
+<script>
+  const btn = document.getElementById('menu-btn');
+  const menu = document.getElementById('mobile-menu');
+
+  btn.addEventListener('click', () => {
+    menu.classList.toggle('hidden');
+  });
+</script>

@@ -1,11 +1,15 @@
-<% if(success.length > 0) { %>
-  <div class="bg-green-500 text-white p-3 ">
-    <%= success %>
-  </div>
-<% } %>
+<% if(success.length || error.length) { %>
+<div class="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-full px-4">
+  <% if(success.length) { %>
+    <div class="mx-auto max-w-md bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg text-center">
+      <%= success %>
+    </div>
+  <% } %>
 
-<% if(error.length > 0) { %>
-  <div class="bg-red-500 text-white p-3 ">
-    <%= error %>
-  </div>
+  <% if(error.length) { %>
+    <div class="mx-auto max-w-md bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg text-center">
+      <%= error %>
+    </div>
+  <% } %>
+</div>
 <% } %>

@@ -21,6 +21,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+app.use((req, res, next) => {
+  res.locals.currentPath = req.path;
+  next();
+});
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
@@ -38,7 +43,7 @@ app.use((req, res, next) => {
 });
 
 app.get("/", (req, res) => {
-  res.render("login");
+  res.render("home");
 });
 
 app.get("/login", (req, res) => {
@@ -111,11 +116,20 @@ app.post("/login", async (req, res) => {
 app.get("/logout", (req, res) => {
   res.clearCookie("Token");
   req.flash("success", "Logged out successfully");
-  res.redirect("/login");
+  res.redirect("/home");
 });
 
 app.get("/profile", isloggedin, async (req, res) => {
-  const user = await usermodel.findOne({ email: req.user.email }).populate("posts");
+  const user = await usermodel
+    .findOne({ email: req.user.email })
+    .populate("posts");
+
+  if (!user) {
+    req.flash("error", "User not found. Please login again.");
+    res.clearCookie("Token");
+    return res.redirect("/login");
+  }
+
   res.render("profile", { user });
 });
 
@@ -181,11 +195,32 @@ app.get("/allUsers", isloggedin, async (req, res) => {
   });
 });
 
+app.get("/about",(req,res)=>{
+    res.render("about");
+})
+
+app.get("/home",(req,res)=>{
+    res.render("home");
+})
+
+app.get("/platform",(req,res)=>{
+    res.render("platform");
+})
+
 function isloggedin(req, res, next) {
-  if (!req.cookies.Token) return res.redirect("/login");
-  const data = jwt.verify(req.cookies.Token, process.env.JWT_SECRET);
-  req.user = data;
-  next();
+  if (!req.cookies.Token) {
+    req.flash("error", "Please Login !!");
+    return res.redirect("/login");
+  }
+  try {
+    const data = jwt.verify(req.cookies.Token, process.env.JWT_SECRET);
+    req.user = data;
+    next();
+  } catch (err) {
+    req.flash("error", "Session expired. Please login !");
+    res.clearCookie("Token");
+    return res.redirect("/login");
+  }
 }
 
 const PORT = process.env.PORT || 3000;

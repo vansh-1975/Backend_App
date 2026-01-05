@@ -80,7 +80,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <title>Profile</title>
 </head>
-
+<%- include("./partials/header") %>
 <body class="bg-gray-100">
   <%- include("./partials/flash") %>
 
@@ -94,16 +94,7 @@
           Hello, <%=user.username%> 👋
         </h3>
       </div>
-
-      <a href="/logout"
-        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
-        Logout
-      </a>
     </div>
-
-    <a href="/upload" class="text-indigo-600 text-sm underline mb-4 block">
-      Edit Profile Picture
-    </a>
 
     <form action="/post" method="post" class="bg-white p-4 rounded-xl shadow mb-10">
       <textarea name="content"

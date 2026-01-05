@@ -1,5 +1,7 @@
 const mongoose=require("mongoose");
-mongoose.connect("mongodb://localhost:27017/vanDB");
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Atlas connected"))
+  .catch(err => console.log(err));
 let userSchema=mongoose.Schema({
     username:String,
     email:String,
