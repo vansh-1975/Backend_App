@@ -20,26 +20,47 @@
 
 
 
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+// config/multerconfig.js
 const multer = require('multer');
+const cloudinary = require('cloudinary');
 require('dotenv').config();
 
+// Configure Cloudinary v1
 cloudinary.config({
-  cloud_name: process.env.CLOUD_NAME,
-  api_key: process.env.CLOUD_API_KEY,
-  api_secret: process.env.CLOUD_API_SECRET
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY || process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET || process.env.CLOUD_API_SECRET
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'profile_pics',
-    allowed_formats: ['jpg', 'jpeg', 'png'],
-    transformation: [{ width: 500, height: 500, crop: 'limit' }]
-  },
+// Setup multer memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-const upload = multer({ storage: storage });
+// Upload function for Cloudinary
+const uploadToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    if (!buffer) {
+      return reject(new Error('No file buffer provided'));
+    }
+    
+    cloudinary.v2.uploader.upload_stream(
+      {
+        folder: 'profile_pics',
+        allowed_formats: ['jpg', 'jpeg', 'png'],
+        transformation: [{ width: 500, height: 500, crop: 'limit' }]
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result);
+        }
+      }
+    ).end(buffer);
+  });
+};
 
-module.exports = upload;
+module.exports = { upload, uploadToCloudinary };

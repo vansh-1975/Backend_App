@@ -1,4 +1,5 @@
 require("dotenv").config();
+const { upload, uploadToCloudinary } = require("./config/multerconfig");
 
 const express = require("express");
 const path = require("path");
@@ -10,7 +11,7 @@ const flash = require("connect-flash");
 
 const usermodel = require("./models/user");
 const postmodel = require("./models/post");
-const upload = require("./config/multerconfig");
+// const upload = require("./config/multerconfig");
 
 const app = express();
 
@@ -138,15 +139,31 @@ app.get("/upload", isloggedin, (req, res) => {
 });
 
 app.post("/upload", isloggedin, upload.single("image"), async (req, res) => {
+  console.log("Upload route hit");
+  
   try {
+    if (!req.file) {
+      req.flash("error", "Please select a file");
+      return res.redirect("/upload");
+    }
+
+    console.log("File received:", req.file.originalname);
+    
+    // Upload to Cloudinary
+    const result = await uploadToCloudinary(req.file.buffer);
+    console.log("Cloudinary upload successful:", result.secure_url);
+
+    // Update user profile
     const user = await usermodel.findOne({ email: req.user.email });
-    user.profilepic = req.file.path;
+    user.profilepic = result.secure_url;
     await user.save();
-    req.flash("success", "Profile picture updated");
+    
+    req.flash("success", "Profile picture updated!");
     res.redirect("/profile");
-  } catch (err) {
-    console.error(err);
-    req.flash("error", "Failed to upload image. Try again!");
+    
+  } catch (error) {
+    console.error("UPLOAD ERROR:", error);
+    req.flash("error", "Upload failed: " + error.message);
     res.redirect("/upload");
   }
 });
