@@ -235,7 +235,6 @@ app.get("/platform",(req,res)=>{
 app.get("/chat/:userId", isloggedin, async (req, res) => {
   const receiverId = req.params.userId;
 
-  // prevent chatting with yourself
   if (receiverId === req.user.userid) {
     req.flash("error", "You cannot chat with yourself");
     return res.redirect("/allUsers");
@@ -249,11 +248,13 @@ app.get("/chat/:userId", isloggedin, async (req, res) => {
   }
 
   const messages = await Message.find({
-    $or: [
-      { sender: req.user.userid, receiver: receiverId },
-      { sender: receiverId, receiver: req.user.userid }
-    ]
-  }).sort("createdAt");
+  $or: [
+    { sender: req.user.userid, receiver: receiverId },
+    { sender: receiverId, receiver: req.user.userid }
+  ],
+  deletedFor: { $ne: req.user.userid }
+}).sort("createdAt");
+
 
   res.render("chat", {
     receiver,
@@ -304,39 +305,99 @@ io.use((socket, next) => {
   }
 });
 
-io.on("connection", (socket) => {
-  socket.on("joinRoom", ({ receiverId }) => {
-    const senderId = socket.user.userid;
+const onlineUsers = new Map();
 
+io.on("connection", (socket) => {
+  const userId = socket.user.userid;
+  onlineUsers.set(userId, socket.id);
+
+  socket.on("joinRoom", ({ receiverId }) => {
     const roomId =
-      senderId < receiverId
-        ? `${senderId}_${receiverId}`
-        : `${receiverId}_${senderId}`;
+      userId < receiverId
+        ? `${userId}_${receiverId}`
+        : `${receiverId}_${userId}`;
 
     socket.join(roomId);
+
+    socket.to(roomId).emit("userOnline", { userId });
+  });
+
+  socket.on("typing", ({ receiverId }) => {
+    const roomId =
+      userId < receiverId
+        ? `${userId}_${receiverId}`
+        : `${receiverId}_${userId}`;
+
+    socket.to(roomId).emit("typing", { userId });
+  });
+
+  socket.on("stopTyping", ({ receiverId }) => {
+    const roomId =
+      userId < receiverId
+        ? `${userId}_${receiverId}`
+        : `${receiverId}_${userId}`;
+
+    socket.to(roomId).emit("stopTyping", { userId });
   });
 
   socket.on("sendMessage", async ({ receiverId, text }) => {
-    const senderId = socket.user.userid;
-
     const roomId =
-      senderId < receiverId
-        ? `${senderId}_${receiverId}`
-        : `${receiverId}_${senderId}`;
+      userId < receiverId
+        ? `${userId}_${receiverId}`
+        : `${receiverId}_${userId}`;
 
     const msg = await Message.create({
-      sender: senderId,
+      sender: userId,
       receiver: receiverId,
       text
     });
 
     io.to(roomId).emit("newMessage", {
-      senderId,
+      _id: msg._id,
+      senderId: userId,
       text,
       createdAt: msg.createdAt
     });
   });
+
+  socket.on("deleteMessage", async ({ messageId, forEveryone }) => {
+    const msg = await Message.findById(messageId);
+    if (!msg) return;
+
+    if (forEveryone && msg.sender.equals(userId)) {
+      msg.isDeletedForEveryone = true;
+    } else {
+      msg.deletedFor.push(userId);
+    }
+
+    await msg.save();
+
+    io.emit("messageDeleted", {
+      messageId,
+      forEveryone
+    });
+  });
+
+  socket.on("editMessage", async ({ messageId, newText }) => {
+    const msg = await Message.findById(messageId);
+    if (!msg || !msg.sender.equals(userId)) return;
+
+    msg.text = newText;
+    msg.edited = true;
+    await msg.save();
+
+    io.emit("messageEdited", {
+      messageId,
+      newText
+    });
+  });
+
+  socket.on("disconnect", () => {
+    onlineUsers.delete(userId);
+    io.emit("userOffline", { userId });
+  });
 });
+
  const PORT = process.env.PORT || 3000;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
