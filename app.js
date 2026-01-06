@@ -305,11 +305,8 @@ io.use((socket, next) => {
   }
 });
 
-const onlineUsers = new Map();
-
 io.on("connection", (socket) => {
   const userId = socket.user.userid;
-  onlineUsers.set(userId, socket.id);
 
   socket.on("joinRoom", ({ receiverId }) => {
     const roomId =
@@ -318,8 +315,6 @@ io.on("connection", (socket) => {
         : `${receiverId}_${userId}`;
 
     socket.join(roomId);
-
-    socket.to(roomId).emit("userOnline", { userId });
   });
 
   socket.on("typing", ({ receiverId }) => {
@@ -328,7 +323,7 @@ io.on("connection", (socket) => {
         ? `${userId}_${receiverId}`
         : `${receiverId}_${userId}`;
 
-    socket.to(roomId).emit("typing", { userId });
+    socket.to(roomId).emit("typing");
   });
 
   socket.on("stopTyping", ({ receiverId }) => {
@@ -337,7 +332,7 @@ io.on("connection", (socket) => {
         ? `${userId}_${receiverId}`
         : `${receiverId}_${userId}`;
 
-    socket.to(roomId).emit("stopTyping", { userId });
+    socket.to(roomId).emit("stopTyping");
   });
 
   socket.on("sendMessage", async ({ receiverId, text }) => {
@@ -360,25 +355,23 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("deleteMessage", async ({ messageId, forEveryone }) => {
+  socket.on("deleteMessage", async ({ messageId, receiverId }) => {
     const msg = await Message.findById(messageId);
     if (!msg) return;
 
-    if (forEveryone && msg.sender.equals(userId)) {
-      msg.isDeletedForEveryone = true;
-    } else {
-      msg.deletedFor.push(userId);
-    }
+    if (!msg.sender.equals(userId)) return;
 
-    await msg.save();
+    await Message.findByIdAndDelete(messageId);
 
-    io.emit("messageDeleted", {
-      messageId,
-      forEveryone
-    });
+    const roomId =
+      userId < receiverId
+        ? `${userId}_${receiverId}`
+        : `${receiverId}_${userId}`;
+
+    io.to(roomId).emit("messageDeleted", { messageId });
   });
 
-  socket.on("editMessage", async ({ messageId, newText }) => {
+  socket.on("editMessage", async ({ messageId, newText, receiverId }) => {
     const msg = await Message.findById(messageId);
     if (!msg || !msg.sender.equals(userId)) return;
 
@@ -386,22 +379,27 @@ io.on("connection", (socket) => {
     msg.edited = true;
     await msg.save();
 
-    io.emit("messageEdited", {
+    const roomId =
+      userId < receiverId
+        ? `${userId}_${receiverId}`
+        : `${receiverId}_${userId}`;
+
+    io.to(roomId).emit("messageEdited", {
       messageId,
       newText
     });
   });
 
   socket.on("disconnect", () => {
-    onlineUsers.delete(userId);
-    io.emit("userOffline", { userId });
+    // optional: handle offline logic later
   });
 });
 
- const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
 
 

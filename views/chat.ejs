@@ -17,37 +17,24 @@
 
     <!-- HEADER -->
     <div class="flex items-center gap-3 px-4 py-3 border-b bg-gray-50">
-      <img
-        src="<%= receiver.profilepic %>"
-        class="w-10 h-10 rounded-full object-cover"
-        alt="profile"
-      />
+      <img src="<%= receiver.profilepic %>" class="w-10 h-10 rounded-full object-cover" />
       <div>
-        <h2 class="font-semibold text-gray-800">
-          <%= receiver.username %>
-        </h2>
+        <h2 class="font-semibold text-gray-800"><%= receiver.username %></h2>
         <p id="typingStatus" class="text-xs text-gray-400 h-4"></p>
       </div>
     </div>
 
     <!-- CHAT BOX -->
-    <div
-      id="chatBox"
-      class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-100"
-    >
+    <div id="chatBox" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-100">
       <% messages.forEach(m => { %>
-        <div
-          class="flex <%= m.sender.equals(loggedInUserId) ? 'justify-end' : 'justify-start' %>"
-          data-id="<%= m._id %>"
-        >
-          <div
-            class="relative max-w-[75%] px-4 py-2 rounded-2xl text-sm
+        <div class="flex <%= m.sender.equals(loggedInUserId) ? 'justify-end' : 'justify-start' %>" data-id="<%= m._id %>">
+          <div class="relative max-w-[75%] px-4 py-2 rounded-2xl text-sm
             <%= m.sender.equals(loggedInUserId)
               ? 'bg-indigo-500 text-white rounded-br-none'
-              : 'bg-white text-gray-800 rounded-bl-none shadow' %>"
-          >
+              : 'bg-white text-gray-800 rounded-bl-none shadow' %>">
+
             <p class="messageText">
-              <%= m.isDeletedForEveryone ? "Message deleted" : m.text %>
+              <%= m.text %>
               <% if (m.edited) { %>
                 <span class="text-[10px] opacity-70">(edited)</span>
               <% } %>
@@ -57,34 +44,24 @@
               <%= new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
             </span>
 
-            <% if (m.sender.equals(loggedInUserId) && !m.isDeletedForEveryone) { %>
+            <% if (m.sender.equals(loggedInUserId)) { %>
               <div class="absolute -top-2 flex gap-1">
                 <button onclick="editMsg('<%= m._id %>')" class="text-xs bg-yellow-400 px-1 rounded">✏</button>
-                <!-- <button onclick="deleteMsg('<%= m._id %>', false)" class="text-xs bg-red-400 px-1 rounded">🗑</button> -->
-                <button onclick="deleteMsg('<%= m._id %>', true)" class="text-xs bg-red-600 text-white px-1 rounded">❌</button>
+                <button onclick="deleteMsg('<%= m._id %>')" class="text-xs bg-red-400 px-1 rounded">🗑</button>
               </div>
             <% } %>
+
           </div>
         </div>
       <% }) %>
     </div>
 
     <!-- INPUT -->
-    <form
-      id="chatForm"
-      class="flex items-center gap-2 p-3 border-t bg-white"
-    >
-      <input
-        id="msgInput"
-        type="text"
-        placeholder="Type a message..."
-        class="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        autocomplete="off"
-      />
-      <button
-        type="submit"
-        class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2 rounded-full transition"
-      >
+    <form id="chatForm" class="flex items-center gap-2 p-3 border-t bg-white">
+      <input id="msgInput" type="text" placeholder="Type a message..."
+        class="flex-1 px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+      <button type="submit"
+        class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2 rounded-full">
         Send
       </button>
     </form>
@@ -93,91 +70,60 @@
 
 <script>
   const socket = io();
-
   const receiverId = "<%= receiver._id %>";
   const loggedInUserId = "<%= loggedInUserId %>";
 
-  const chatBox = document.getElementById("chatBox");
-  const msgInput = document.getElementById("msgInput");
-  const chatForm = document.getElementById("chatForm");
-  const typingStatus = document.getElementById("typingStatus");
-
   socket.emit("joinRoom", { receiverId });
-  chatBox.scrollTop = chatBox.scrollHeight;
 
   // SEND MESSAGE
   chatForm.addEventListener("submit", e => {
     e.preventDefault();
     const text = msgInput.value.trim();
     if (!text) return;
-
     socket.emit("sendMessage", { receiverId, text });
     msgInput.value = "";
-    socket.emit("stopTyping", { receiverId });
   });
 
-  // TYPING INDICATOR
-  let typingTimeout;
-  msgInput.addEventListener("input", () => {
-    socket.emit("typing", { receiverId });
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-      socket.emit("stopTyping", { receiverId });
-    }, 1000);
-  });
-
-  socket.on("typing", () => {
-    typingStatus.innerText = "typing...";
-  });
-
-  socket.on("stopTyping", () => {
-    typingStatus.innerText = "";
-  });
-
-  // NEW MESSAGE
+  // RECEIVE MESSAGE
   socket.on("newMessage", msg => {
     const isMine = msg.senderId === loggedInUserId;
+    const div = document.createElement("div");
+    div.className = `flex ${isMine ? "justify-end" : "justify-start"}`;
+    div.dataset.id = msg._id;
 
-    const wrapper = document.createElement("div");
-    wrapper.className = `flex ${isMine ? "justify-end" : "justify-start"}`;
-    wrapper.dataset.id = msg._id;
-
-    wrapper.innerHTML = `
+    div.innerHTML = `
       <div class="relative max-w-[75%] px-4 py-2 rounded-2xl text-sm
-        ${isMine
-          ? "bg-indigo-500 text-white rounded-br-none"
-          : "bg-white text-gray-800 rounded-bl-none shadow"}">
+        ${isMine ? "bg-indigo-500 text-white rounded-br-none" : "bg-white text-gray-800 rounded-bl-none shadow"}">
         <p class="messageText">${msg.text}</p>
         <span class="block text-[10px] mt-1 text-right opacity-70">
           ${new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </span>
       </div>
     `;
-
-    chatBox.appendChild(wrapper);
+    chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 
-  // DELETE MESSAGE
-  function deleteMsg(messageId, forEveryone) {
-    socket.emit("deleteMessage", { messageId, forEveryone });
+  // DELETE
+  function deleteMsg(messageId) {
+    socket.emit("deleteMessage", { messageId, receiverId });
   }
 
   socket.on("messageDeleted", ({ messageId }) => {
-    const el = document.querySelector(`[data-id="${messageId}"] .messageText`);
-    if (el) el.innerText = "Message deleted";
+    const el = document.querySelector(`[data-id="${messageId}"]`);
+    if (el) el.remove();
   });
 
-  // EDIT MESSAGE
+  // EDIT
   function editMsg(messageId) {
     const newText = prompt("Edit message:");
     if (!newText) return;
-    socket.emit("editMessage", { messageId, newText });
+    socket.emit("editMessage", { messageId, newText, receiverId });
   }
 
   socket.on("messageEdited", ({ messageId, newText }) => {
     const el = document.querySelector(`[data-id="${messageId}"] .messageText`);
-    if (el) el.innerText = newText + " (edited)";
+    if (el) el.innerHTML = `${newText} <span class="text-[10px] opacity-70">(edited)</span>`;
   });
 </script>
 
