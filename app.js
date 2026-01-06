@@ -11,6 +11,8 @@ const flash = require("connect-flash");
 
 const usermodel = require("./models/user");
 const postmodel = require("./models/post");
+const Message = require("./models/message");
+
 // const upload = require("./config/multerconfig");
 
 const app = express();
@@ -230,6 +232,37 @@ app.get("/platform",(req,res)=>{
     res.render("platform");
 })
 
+app.get("/chat/:userId", isloggedin, async (req, res) => {
+  const receiverId = req.params.userId;
+
+  // prevent chatting with yourself
+  if (receiverId === req.user.userid) {
+    req.flash("error", "You cannot chat with yourself");
+    return res.redirect("/allUsers");
+  }
+
+  const receiver = await usermodel.findById(receiverId);
+
+  if (!receiver) {
+    req.flash("error", "User not found");
+    return res.redirect("/allUsers");
+  }
+
+  const messages = await Message.find({
+    $or: [
+      { sender: req.user.userid, receiver: receiverId },
+      { sender: receiverId, receiver: req.user.userid }
+    ]
+  }).sort("createdAt");
+
+  res.render("chat", {
+    receiver,
+    messages,
+    loggedInUserId: req.user.userid
+  });
+});
+
+
 function isloggedin(req, res, next) {
   if (!req.cookies.Token) {
     req.flash("error", "Please Login !!");
@@ -246,8 +279,72 @@ function isloggedin(req, res, next) {
   }
 }
 
-const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, "0.0.0.0", () => {
+const http = require("http");
+const server = http.createServer(app);
+
+const { Server } = require("socket.io");
+const io = new Server(server);
+
+io.use((socket, next) => {
+  try {
+    const cookie = socket.handshake.headers.cookie;
+    if (!cookie) return next(new Error("No auth"));
+
+    const token = cookie
+      .split(";")
+      .find(c => c.trim().startsWith("Token="))
+      ?.split("=")[1];
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded;
+    next();
+  } catch (err) {
+    next(new Error("Authentication failed"));
+  }
+});
+
+io.on("connection", (socket) => {
+  socket.on("joinRoom", ({ receiverId }) => {
+    const senderId = socket.user.userid;
+
+    const roomId =
+      senderId < receiverId
+        ? `${senderId}_${receiverId}`
+        : `${receiverId}_${senderId}`;
+
+    socket.join(roomId);
+  });
+
+  socket.on("sendMessage", async ({ receiverId, text }) => {
+    const senderId = socket.user.userid;
+
+    const roomId =
+      senderId < receiverId
+        ? `${senderId}_${receiverId}`
+        : `${receiverId}_${senderId}`;
+
+    const msg = await Message.create({
+      sender: senderId,
+      receiver: receiverId,
+      text
+    });
+
+    io.to(roomId).emit("newMessage", {
+      senderId,
+      text,
+      createdAt: msg.createdAt
+    });
+  });
+});
+ const PORT = process.env.PORT || 3000;
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+
+
+
+// app.listen(PORT, "0.0.0.0", () => {
+//   console.log(`Server running on port ${PORT}`);
+// });

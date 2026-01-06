@@ -66,7 +66,6 @@
 
 
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -95,6 +94,10 @@
               class="w-10 h-10 rounded-full object-cover">
             <div>
               <p class="font-semibold"><%=post.user.username%></p>
+              <a href="/chat/<%= post.user._id %>"
+                class="text-indigo-500 text-sm hover:underline">
+                💬 Message
+              </a>
               <small class="text-gray-400"><%= post.date.toDateString() %></small>
             </div>
           </div>
